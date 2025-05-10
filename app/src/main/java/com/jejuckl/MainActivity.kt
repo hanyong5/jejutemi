@@ -1,9 +1,15 @@
 package com.jejuckl
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.os.Bundle
+import android.speech.RecognizerIntent
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -42,25 +48,65 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.foundation.shape.CircleShape
+
 import androidx.compose.ui.viewinterop.AndroidView
 
 
 class MainActivity : ComponentActivity() {
+    private var recognizedText by mutableStateOf("버튼을 눌러 말하세요.")
+
+    // Google STT Launcher
+    private val speechRecognizerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK && result.data != null) {
+            val matches = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            if (!matches.isNullOrEmpty()) {
+                val spokenText = matches[0]
+                Log.d("GoogleSTT", "인식된 텍스트: $spokenText")
+                recognizedText = spokenText
+            }
+        }
+    }
+
+    // Google STT 음성 인식 시작
+    private fun startVoiceRecognition() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "대화 내용을 말씀해 주세요...")
+        }
+
+        try {
+            speechRecognizerLauncher.launch(intent)
+        } catch (e: ActivityNotFoundException) {
+            Log.e("GoogleSTT", "Google 음성 인식 기능이 사용 불가능합니다.")
+            Toast.makeText(this, "Google 음성 인식 기능이 사용 불가능합니다.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             Jejuckl_temiTheme {
-                TabletBackgroundScreen()
+                TabletBackgroundScreen(
+                    onStartListening = { startVoiceRecognition() },
+                    recognizedText = recognizedText
+                )
             }
         }
     }
 }
 
 @Composable
-fun TabletBackgroundScreen() {
-    var showDialog by remember { mutableStateOf(false) }
+fun TabletBackgroundScreen(
+    onStartListening: () -> Unit,
+    recognizedText: String
+) {
     var showEducationDialog by remember { mutableStateOf(false) }
+    var showSTTDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -68,20 +114,26 @@ fun TabletBackgroundScreen() {
             contentDescription = null,
             modifier = Modifier.fillMaxSize()
         )
-        // 바둑판 형태 커스텀 배치
         CustomGridMenu(
             modifier = Modifier.fillMaxSize().padding(24.dp),
-            onFirstButtonClick = { showDialog = true },
+            onFirstButtonClick = {
+                onStartListening()
+                showSTTDialog = true
+            },
             onEducationClick = { showEducationDialog = true }
         )
 
-        if (showDialog) {
-            AskAnythingDialog(onDismiss = { showDialog = false })
-        }
         if (showEducationDialog) {
             EducationDialog(
-                url = "https://원하는_교육안내_URL", // 실제 URL로 교체
+                url = "https://www.naver.com",
                 onDismiss = { showEducationDialog = false }
+            )
+        }
+        if (showSTTDialog) {
+            STTDialog(
+                onDismiss = { showSTTDialog = false },
+                onStartListening = onStartListening,
+                recognizedText = recognizedText
             )
         }
     }
@@ -130,7 +182,7 @@ fun CustomGridMenu(
             Column(
                 modifier = Modifier.weight(1f),
 
-            ) {
+                ) {
                 MenuButton(
                     iconResId = R.drawable.btn02_02,
                     modifier = Modifier.weight(1f)
@@ -200,55 +252,7 @@ fun MenuButton(
     }
 }
 
-@Composable
-fun AskAnythingDialog(onDismiss: () -> Unit) {
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Color(0x88000000))
-            .clickable(
-                onClick = onDismiss,
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            )
-    ) {
-        Box(
-            Modifier
-                .align(Alignment.Center)
-                .padding(start = 50.dp, end = 50.dp, top = 120.dp, bottom = 170.dp) // ✅ 여기에 패딩 추가
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color.White)
-                .padding(24.dp) // 내부 여백
-                .fillMaxWidth() // 전체 너비 사용 (패딩 안쪽)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("무엇 이든 물어보세요...", color = Color.Gray, fontSize = 16.sp)
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "닫기")
-                    }
-                }
-                Spacer(Modifier.height(24.dp))
-                Text(
-                    "무엇이든지 물어보세요. 오늘도 좋은 하루 되세요",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Color.Black
-                )
-                Spacer(Modifier.height(32.dp))
-                Button(
-                    onClick = onDismiss,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
-                ) {
-                    Text("다시 질문하기", color = Color.White)
-                }
-            }
-        }
-    }
-}
+
 
 @Composable
 fun EducationDialog(
@@ -265,12 +269,15 @@ fun EducationDialog(
                 interactionSource = remember { MutableInteractionSource() }
             )
     ) {
+
+
+        // 메인 다이얼로그 박스
         Box(
             Modifier
                 .align(Alignment.Center)
-                .padding(start = 50.dp, end = 50.dp, top = 90.dp, bottom = 100.dp)
+                .padding(start = 50.dp, end = 50.dp, top = 90.dp, bottom = 80.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(Color.White)
+                .background(Color(0xFFDAEBFE))
                 .padding(16.dp)
                 .fillMaxWidth()
         ) {
@@ -278,31 +285,15 @@ fun EducationDialog(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFF5F5F5))
-                        .padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "교육안내",
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "닫기")
-                    }
-                }
-                // WebView 영역
+
+
+                // WebView
                 AndroidView(
                     factory = { context ->
                         WebView(context).apply {
                             webViewClient = WebViewClient()
                             settings.javaScriptEnabled = true
-                            loadUrl("https://www.naver.com")
+                            loadUrl(url)
                         }
                     },
                     modifier = Modifier
@@ -311,13 +302,145 @@ fun EducationDialog(
                 )
             }
         }
+        // ✅ 상단 오른쪽에 고정된 동그라미 닫기 버튼
+        IconButton(
+            onClick = onDismiss,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 70.dp, end = 50.dp)
+                .size(60.dp) // 동그라미 크기
+                .background(Color.LightGray, shape = CircleShape) // 원형 배경
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "닫기",
+                tint = Color.Black,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+
+
+
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 70.dp,start = 130.dp, end = 130.dp,)
+                .background(Color.Yellow)
+        ) {
+
+            Column(
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            )
+            {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    CustomBoxButton("창작실")
+                    CustomBoxButton("회의실")
+                    CustomBoxButton("교육실1")
+                    CustomBoxButton("교육실2")
+                    CustomBoxButton("콘텐츠공작소")
+                    CustomBoxButton("입주실")
+
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    CustomBoxButton("편집실/장비보관실/스튜디오/머블코지")
+                    CustomBoxButton("정수기")
+                    CustomBoxButton("사무실")
+                }
+            }
+            }
+
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
-    Jejuckl_temiTheme {
-//        Greeting("Android")
+fun CustomBoxButton(text: String) {
+    Box(
+        modifier = Modifier
+            .height(48.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .padding(3.dp)
+            .background(Color(0xFF2196F3))
+            .clickable { /* TODO */ },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = text, color = Color.White, fontWeight = FontWeight.Bold,fontSize = 16.sp,)
     }
 }
+
+@Composable
+fun STTDialog(
+    onDismiss: () -> Unit,
+    onStartListening: () -> Unit,
+    recognizedText: String
+) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0x88000000))
+            .clickable(
+                onClick = onDismiss,
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            )
+    ) {
+        Box(
+            Modifier
+                .align(Alignment.Center)
+                .padding(start = 50.dp, end = 50.dp, top = 120.dp, bottom = 170.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White)
+                .padding(24.dp)
+                .fillMaxWidth()
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "음성 인식 결과",
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "닫기")
+                    }
+                }
+                Spacer(Modifier.height(24.dp))
+                Text(
+                    text = recognizedText,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = Color.Black,
+                    modifier = Modifier.padding(16.dp)
+                )
+                Spacer(Modifier.height(32.dp))
+                Button(
+                    onClick = onStartListening,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Text("다시 말하기", color = Color.White, fontSize = 18.sp)
+                }
+            }
+        }
+    }
+}
+
+
+
