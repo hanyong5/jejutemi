@@ -48,6 +48,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 
 import androidx.compose.ui.viewinterop.AndroidView
@@ -325,55 +326,68 @@ fun EducationDialog(
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 70.dp,start = 130.dp, end = 130.dp,)
+                .padding(bottom = 70.dp, start = 130.dp, end = 130.dp)
                 .background(Color.Yellow)
         ) {
-
-            Column(
-                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            )
-            {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+//                    .padding(8.dp)
+//                    .border(1.dp, Color.Black)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(
+                    modifier = Modifier.weight(3.6f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    CustomBoxButton("창작실")
-                    CustomBoxButton("회의실")
-                    CustomBoxButton("교육실1")
-                    CustomBoxButton("교육실2")
-                    CustomBoxButton("콘텐츠공작소")
-                    CustomBoxButton("입주실")
-
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        RoomButton("창작실", Modifier.weight(1f))
+                        RoomButton("회의실", Modifier.weight(1f))
+                        RoomButton("교육실1", Modifier.weight(1f))
+                        RoomButton("교육실2", Modifier.weight(1f))
+                    }
+                    RoomButton(
+                        "편집실 / 장비보관실 / 스튜디오 / 머들코지",
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth()
+
+                Column(
+                    modifier = Modifier
+                        .weight(0.8f)
+                        .padding(horizontal = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    CustomBoxButton("편집실/장비보관실/스튜디오/머블코지")
-                    CustomBoxButton("정수기")
-                    CustomBoxButton("사무실")
+                    RoomButton("콘텐츠공작소", modifier = Modifier.fillMaxWidth())
+                    RoomButton("정수기", modifier = Modifier.fillMaxWidth())
+                }
+
+                Column(
+                    modifier = Modifier.weight(0.8f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    RoomButton("입주실", modifier = Modifier.fillMaxWidth())
+                    RoomButton("사무실", modifier = Modifier.fillMaxWidth())
                 }
             }
-            }
+        }
 
     }
 }
 
-@Composable
-fun CustomBoxButton(text: String) {
-    Box(
-        modifier = Modifier
-            .height(48.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .padding(3.dp)
-            .background(Color(0xFF2196F3))
-            .clickable { /* TODO */ },
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = text, color = Color.White, fontWeight = FontWeight.Bold,fontSize = 16.sp,)
+    @Composable
+    fun RoomButton(label: String, modifier: Modifier = Modifier) {
+        Button(
+            onClick = { /* TODO: 클릭 이벤트 처리 */ },
+            modifier = modifier.height(48.dp)
+        ) {
+            Text(text = label, fontSize = 16.sp,fontWeight = FontWeight.Bold)
+        }
     }
-}
+
+
+
 
 @Composable
 fun STTDialog(
@@ -441,6 +455,9 @@ fun STTDialog(
         }
     }
 }
+
+
+
 
 
 
