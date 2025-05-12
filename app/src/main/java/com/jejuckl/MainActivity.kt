@@ -29,7 +29,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,6 +38,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+
 import androidx.compose.runtime.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -56,6 +56,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 
 class MainActivity : ComponentActivity() {
     private var recognizedText by mutableStateOf("버튼을 눌러 말하세요.")
+
+
 
     // Google STT Launcher
     private val speechRecognizerLauncher = registerForActivityResult(
@@ -106,8 +108,13 @@ fun TabletBackgroundScreen(
     onStartListening: () -> Unit,
     recognizedText: String
 ) {
+    var showBtn02_02Dialog by remember { mutableStateOf(false) }
+    var showBtn02_03Dialog by remember { mutableStateOf(false) }
+    var showBtn03_01Dialog by remember { mutableStateOf(false) }
+
     var showEducationDialog by remember { mutableStateOf(false) }
     var showSTTDialog by remember { mutableStateOf(false) }
+    var showInfoDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -121,7 +128,11 @@ fun TabletBackgroundScreen(
                 onStartListening()
                 showSTTDialog = true
             },
-            onEducationClick = { showEducationDialog = true }
+            onEducationClick = { showEducationDialog = true },
+            onBtn02_02Click = { showBtn02_02Dialog = true },
+            onBtn02_03Click = { showBtn02_03Dialog = true },
+            onBtn03_01Click = { showBtn03_01Dialog = true },
+            onBtn04_01Click = { showInfoDialog = true }
         )
 
         if (showEducationDialog) {
@@ -137,6 +148,27 @@ fun TabletBackgroundScreen(
                 recognizedText = recognizedText
             )
         }
+        if (showBtn02_02Dialog) {
+            EducationDialog(
+                url = "https://winloc.netlify.app/",
+                onDismiss = { showBtn02_02Dialog = false }
+            )
+        }
+        if (showBtn02_03Dialog) {
+            EducationDialog(
+                url = "https://example.com/edu02_03",
+                onDismiss = { showBtn02_03Dialog = false }
+            )
+        }
+        if (showBtn03_01Dialog) {
+            EducationDialog(
+                url = "https://example.com/edu03_01",
+                onDismiss = { showBtn03_01Dialog = false }
+            )
+        }
+        if (showInfoDialog) {
+            InfoDialog(onDismiss = { showInfoDialog = false })
+        }
     }
 }
 
@@ -144,10 +176,14 @@ fun TabletBackgroundScreen(
 fun CustomGridMenu(
     modifier: Modifier = Modifier,
     onFirstButtonClick: () -> Unit,
-    onEducationClick: () -> Unit
+    onEducationClick: () -> Unit,
+    onBtn02_02Click: () -> Unit,
+    onBtn02_03Click: () -> Unit,
+    onBtn03_01Click: () -> Unit,
+    onBtn04_01Click: () -> Unit
 ) {
     Row(
-        modifier = modifier.padding(start = 30.dp, end = 30.dp, top = 120.dp, bottom = 170.dp),
+        modifier = modifier.padding(start = 40.dp, end = 40.dp, top = 140.dp, bottom = 170.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -176,7 +212,7 @@ fun CustomGridMenu(
             ) {
                 MenuButton(
                     iconResId = R.drawable.btn02_01,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(0.9f),
                     onClick = onEducationClick
                 )
             }
@@ -186,12 +222,15 @@ fun CustomGridMenu(
                 ) {
                 MenuButton(
                     iconResId = R.drawable.btn02_02,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    onClick = onBtn02_02Click
                 )
+                Spacer(modifier = Modifier.height(16.dp))
 
                 MenuButton(
                     iconResId = R.drawable.btn02_03,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    onClick = onBtn02_03Click
                 )
             }
 
@@ -212,7 +251,8 @@ fun CustomGridMenu(
             ) {
                 MenuButton(
                     iconResId = R.drawable.btn04_01,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(0.8f),
+                    onClick = onBtn03_01Click
                 )
             }
             Row(
@@ -221,7 +261,8 @@ fun CustomGridMenu(
             ) {
                 MenuButton(
                     iconResId = R.drawable.btn04_02,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(0.8f),
+                            onClick = onBtn04_01Click
                 )
             }
         }
@@ -348,7 +389,7 @@ fun EducationDialog(
                         RoomButton("교육실2", Modifier.weight(1f))
                     }
                     RoomButton(
-                        "편집실 / 장비보관실 / 스튜디오 / 머들코지",
+                        "편집실 / 장비보관실 / 스튜디오 / 머들코지2",
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -451,6 +492,139 @@ fun STTDialog(
                 ) {
                     Text("다시 말하기", color = Color.White, fontSize = 18.sp)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun InfoDialog(onDismiss: () -> Unit) {
+    val tabTitles = listOf("1층 안내", "2층 안내", "시설안내")
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabContents = listOf(
+        "1층에는 안내데스크, 로비, 카페가 있습니다.",
+        "2층에는 회의실, 교육실, 사무실이 있습니다.",
+        "시설 이용시간은 09:00~18:00입니다."
+    )
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0x88000000))
+            .clickable(
+                onClick = onDismiss,
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            )
+    ) {
+        Box(
+            Modifier
+                .align(Alignment.Center)
+                .padding(start = 50.dp, end = 50.dp, top = 90.dp, bottom = 80.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0xFFDAEBFE))
+                .padding(16.dp)
+                .fillMaxWidth()
+        ) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                // 좌측 탭
+                Column(
+                    modifier = Modifier
+                        .width(120.dp)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    tabTitles.forEachIndexed { idx, title ->
+                        Button(
+                            onClick = { selectedTab = idx },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (selectedTab == idx) Color(0xFF2196F3) else Color.White,
+                                contentColor = if (selectedTab == idx) Color.White else Color.Black
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Text(title, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                // 우측 내용
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(start = 24.dp),
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    Text(
+                        text = tabContents[selectedTab],
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
+                    )
+                }
+            }
+            // 하단 RoomButton 레이어 (교육안내와 동일)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 0.dp, start = 80.dp, end = 80.dp)
+                    .background(Color.Yellow)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(
+                        modifier = Modifier.weight(3.6f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            RoomButton("창작실", Modifier.weight(1f))
+                            RoomButton("회의실", Modifier.weight(1f))
+                            RoomButton("교육실1", Modifier.weight(1f))
+                            RoomButton("교육실2", Modifier.weight(1f))
+                        }
+                        RoomButton(
+                            "편집실 / 장비보관실 / 스튜디오 / 머들코지1",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    Column(
+                        modifier = Modifier
+                            .weight(0.8f)
+                            .padding(horizontal = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        RoomButton("콘텐츠공작소", modifier = Modifier.fillMaxWidth())
+                        RoomButton("정수기", modifier = Modifier.fillMaxWidth())
+                    }
+                    Column(
+                        modifier = Modifier.weight(0.8f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        RoomButton("입주실", modifier = Modifier.fillMaxWidth())
+                        RoomButton("사무실", modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            }
+            // 상단 닫기 버튼
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 10.dp, end = 10.dp)
+                    .size(48.dp)
+                    .background(Color.LightGray, shape = CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "닫기",
+                    tint = Color.Black,
+                    modifier = Modifier.size(28.dp)
+                )
             }
         }
     }
