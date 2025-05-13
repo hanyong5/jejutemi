@@ -105,7 +105,7 @@ fun InfoDialog(onDismiss: () -> Unit) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             RoomButton("창작실", Modifier.weight(1f))
                             RoomButton("회의실", Modifier.weight(1f))
-                            RoomButton("교육실1", Modifier.weight(1f))
+                            RoomButton("교육실11", Modifier.weight(1f))
                             RoomButton("교육실2", Modifier.weight(1f))
                         }
                         RoomButton(

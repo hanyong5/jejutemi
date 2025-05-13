@@ -3,6 +3,8 @@ package com.jejuckl
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognizerIntent
 import android.util.Log
 import android.widget.Toast
@@ -52,14 +54,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 
 import androidx.compose.ui.viewinterop.AndroidView
+import com.robotemi.sdk.Robot
+import com.robotemi.sdk.listeners.OnGoToLocationStatusChangedListener
+import com.robotemi.sdk.listeners.OnRobotReadyListener
 
-
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), OnRobotReadyListener, OnGoToLocationStatusChangedListener {
     private var recognizedText by mutableStateOf("버튼을 눌러 말하세요.")
+    private lateinit var robot: Robot
 
-
-
-    // Google STT Launcher
+    // Google STT Launcherf
     private val speechRecognizerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -91,14 +94,67 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        robot = Robot.getInstance()
+
+        // ⬇️ 리스너 등록 필수
+        robot.addOnGoToLocationStatusChangedListener(this)
+
         enableEdgeToEdge()
         setContent {
             Jejuckl_temiTheme {
                 TabletBackgroundScreen(
                     onStartListening = { startVoiceRecognition() },
-                    recognizedText = recognizedText
+                    recognizedText = recognizedText,
+                    onMoveToLocation = { locationName -> moveTemiToLocation(locationName) }
                 )
             }
+        }
+    }
+
+    private fun moveTemiToLocation(locationName: String) {
+        try {
+            // 테미 로봇이 준비되었는지 확인
+            if (robot.isReady) {
+                // 위치로 이동 명령 실행
+                robot.goTo(locationName)
+                Toast.makeText(this, "${locationName}으로 이동을 시작합니다.", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "테미 로봇이 준비되지 않았습니다.", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Log.e("TemiControl", "테미 이동 중 오류 발생: ${e.message}")
+            Toast.makeText(this, "테미 이동 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onRobotReady(isReady: Boolean) {
+        if (isReady) {
+            Log.d("TemiControl", "테미 로봇이 준비되었습니다.")
+        }
+    }
+
+    override fun onGoToLocationStatusChanged(location: String, status: String, descriptionId: Int, description: String) {
+        Log.d("TemiControl", "상태 수신: $status, 위치: $location")
+        when (status) {
+
+            "start" -> Log.d("TemiControl", "이동 시작: $location")
+            "complete" -> {
+                Log.d("TemiControl", "이동 완료: $location")
+
+                // 10초 후 홈베이스로 이동
+                Handler(Looper.getMainLooper()).postDelayed({
+                    val target = "home"
+                    if (robot.locations.contains(target)) {
+                        robot.goTo(target)
+                        Log.d("TemiControl", "$target 위치로 이동 명령 실행")
+                    } else {
+                        Log.e("TemiControl", "$target 위치가 Temi에 등록되어 있지 않습니다.")
+                    }
+                    Log.d("TemiControl", "10초 후 홈베이스로 복귀 시작")
+                }, 10000) // 10000ms = 10초
+            }
+            "abort" -> Log.d("TemiControl", "이동 중단: $location")
+            "error" -> Log.e("TemiControl", "이동 오류: $location - $description")
         }
     }
 }
@@ -106,7 +162,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun TabletBackgroundScreen(
     onStartListening: () -> Unit,
-    recognizedText: String
+    recognizedText: String,
+    onMoveToLocation: (String) -> Unit
 ) {
     var showBtn02_02Dialog by remember { mutableStateOf(false) }
     var showBtn02_03Dialog by remember { mutableStateOf(false) }
@@ -123,7 +180,9 @@ fun TabletBackgroundScreen(
             modifier = Modifier.fillMaxSize()
         )
         CustomGridMenu(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
             onFirstButtonClick = {
                 onStartListening()
                 showSTTDialog = true
@@ -138,7 +197,8 @@ fun TabletBackgroundScreen(
         if (showEducationDialog) {
             EducationDialog(
                 url = "https://www.naver.com",
-                onDismiss = { showEducationDialog = false }
+                onDismiss = { showEducationDialog = false },
+                onMoveToLocation = onMoveToLocation // ✅ 추가
             )
         }
         if (showSTTDialog) {
@@ -150,24 +210,27 @@ fun TabletBackgroundScreen(
         }
         if (showBtn02_02Dialog) {
             EducationDialog(
-                url = "https://winloc.netlify.app/",
-                onDismiss = { showBtn02_02Dialog = false }
+                url = "https://jejutemi.netlify.app/room",
+                onDismiss = { showBtn02_02Dialog = false },
+                onMoveToLocation = onMoveToLocation // ✅ 추가
             )
         }
         if (showBtn02_03Dialog) {
             EducationDialog(
                 url = "https://example.com/edu02_03",
-                onDismiss = { showBtn02_03Dialog = false }
+                onDismiss = { showBtn02_03Dialog = false },
+                onMoveToLocation = onMoveToLocation // ✅ 추가
             )
         }
         if (showBtn03_01Dialog) {
             EducationDialog(
                 url = "https://example.com/edu03_01",
-                onDismiss = { showBtn03_01Dialog = false }
+                onDismiss = { showBtn03_01Dialog = false },
+                onMoveToLocation = onMoveToLocation // ✅ 추가
             )
         }
         if (showInfoDialog) {
-            InfoDialog(onDismiss = { showInfoDialog = false })
+            InfoDialog(onDismiss = { showInfoDialog = false }, onMoveToLocation = onMoveToLocation)
         }
     }
 }
@@ -299,7 +362,8 @@ fun MenuButton(
 @Composable
 fun EducationDialog(
     url: String,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onMoveToLocation: (String) -> Unit // ✅ 추가
 ) {
     Box(
         Modifier
@@ -383,14 +447,14 @@ fun EducationDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        RoomButton("창작실", Modifier.weight(1f))
-                        RoomButton("회의실", Modifier.weight(1f))
-                        RoomButton("교육실1", Modifier.weight(1f))
-                        RoomButton("교육실2", Modifier.weight(1f))
+                        RoomButton("창작실", Modifier.weight(1f),onMoveToLocation)
+                        RoomButton("회의실", Modifier.weight(1f),onMoveToLocation)
+                        RoomButton("교육실1", Modifier.weight(1f),onMoveToLocation)
+                        RoomButton("교육실2", Modifier.weight(1f),onMoveToLocation)
                     }
                     RoomButton(
                         "편집실 / 장비보관실 / 스튜디오 / 머들코지2",
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),onMoveToLocation
                     )
                 }
 
@@ -400,16 +464,16 @@ fun EducationDialog(
                         .padding(horizontal = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    RoomButton("콘텐츠공작소", modifier = Modifier.fillMaxWidth())
-                    RoomButton("정수기", modifier = Modifier.fillMaxWidth())
+                    RoomButton("콘텐츠공작소", modifier = Modifier.fillMaxWidth(),onMoveToLocation)
+                    RoomButton("정수기", modifier = Modifier.fillMaxWidth(),onMoveToLocation)
                 }
 
                 Column(
                     modifier = Modifier.weight(0.8f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    RoomButton("입주실", modifier = Modifier.fillMaxWidth())
-                    RoomButton("사무실", modifier = Modifier.fillMaxWidth())
+                    RoomButton("입주실", modifier = Modifier.fillMaxWidth(),onMoveToLocation)
+                    RoomButton("사무실", modifier = Modifier.fillMaxWidth(),onMoveToLocation)
                 }
             }
         }
@@ -417,15 +481,54 @@ fun EducationDialog(
     }
 }
 
-    @Composable
-    fun RoomButton(label: String, modifier: Modifier = Modifier) {
-        Button(
-            onClick = { /* TODO: 클릭 이벤트 처리 */ },
-            modifier = modifier.height(48.dp)
-        ) {
-            Text(text = label, fontSize = 16.sp,fontWeight = FontWeight.Bold)
-        }
+@Composable
+fun RoomButton(label: String, modifier: Modifier = Modifier,onMoveToLocation: (String) -> Unit) {
+    var showDialog by remember { mutableStateOf(false) }
+    
+    Button(
+        onClick = { showDialog = true },
+        modifier = modifier.height(48.dp)
+    ) {
+        Text(text = label, fontSize = 16.sp, fontWeight = FontWeight.Bold)
     }
+    
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("테미 이동") },
+            text = { 
+                Column {
+                    Text("${label}으로 테미를 이동하시겠습니까?")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("이동을 시작합니다...", color = Color.Gray)
+                }
+            },
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(
+                        onClick = { showDialog = false },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                    ) {
+                        Text("취소")
+                    }
+                    Button(
+                        onClick = { 
+                            // TODO: 테미 이동 명령 실행
+                            showDialog = false;
+                            onMoveToLocation(label) // ✅ 여기서 호출
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+                    ) {
+                        Text("이동")
+                    }
+                }
+            }
+        )
+    }
+}
 
 
 
@@ -498,7 +601,7 @@ fun STTDialog(
 }
 
 @Composable
-fun InfoDialog(onDismiss: () -> Unit) {
+fun InfoDialog(onDismiss: () -> Unit, onMoveToLocation: (String) -> Unit) {
     val tabTitles = listOf("1층 안내", "2층 안내", "시설안내")
     var selectedTab by remember { mutableStateOf(0) }
     val tabContents = listOf(
@@ -564,52 +667,52 @@ fun InfoDialog(onDismiss: () -> Unit) {
                     )
                 }
             }
-            // 하단 RoomButton 레이어 (교육안내와 동일)
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 0.dp, start = 80.dp, end = 80.dp)
-                    .background(Color.Yellow)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(
-                        modifier = Modifier.weight(3.6f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RoomButton("창작실", Modifier.weight(1f))
-                            RoomButton("회의실", Modifier.weight(1f))
-                            RoomButton("교육실1", Modifier.weight(1f))
-                            RoomButton("교육실2", Modifier.weight(1f))
-                        }
-                        RoomButton(
-                            "편집실 / 장비보관실 / 스튜디오 / 머들코지1",
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    Column(
-                        modifier = Modifier
-                            .weight(0.8f)
-                            .padding(horizontal = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        RoomButton("콘텐츠공작소", modifier = Modifier.fillMaxWidth())
-                        RoomButton("정수기", modifier = Modifier.fillMaxWidth())
-                    }
-                    Column(
-                        modifier = Modifier.weight(0.8f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        RoomButton("입주실", modifier = Modifier.fillMaxWidth())
-                        RoomButton("사무실", modifier = Modifier.fillMaxWidth())
-                    }
-                }
-            }
+//            // 하단 RoomButton 레이어 (교육안내와 동일)
+//            Box(
+//                modifier = Modifier
+//                    .align(Alignment.BottomCenter)
+//                    .padding(bottom = 0.dp, start = 80.dp, end = 80.dp)
+//                    .background(Color.Yellow)
+//            ) {
+//                Row(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .padding(16.dp),
+//                    horizontalArrangement = Arrangement.SpaceBetween
+//                ) {
+//                    Column(
+//                        modifier = Modifier.weight(3.6f),
+//                        verticalArrangement = Arrangement.spacedBy(8.dp)
+//                    ) {
+//                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+//                            RoomButton("창작실", Modifier.weight(1f))
+//                            RoomButton("회의실", Modifier.weight(1f))
+//                            RoomButton("교육실1", Modifier.weight(1f))
+//                            RoomButton("교육실2", Modifier.weight(1f))
+//                        }
+//                        RoomButton(
+//                            "편집실 / 장비보관실 / 스튜디오 / 머들코지1",
+//                            modifier = Modifier.fillMaxWidth()
+//                        )
+//                    }
+//                    Column(
+//                        modifier = Modifier
+//                            .weight(0.8f)
+//                            .padding(horizontal = 8.dp),
+//                        verticalArrangement = Arrangement.spacedBy(8.dp)
+//                    ) {
+//                        RoomButton("콘텐츠공작소", modifier = Modifier.fillMaxWidth())
+//                        RoomButton("정수기", modifier = Modifier.fillMaxWidth())
+//                    }
+//                    Column(
+//                        modifier = Modifier.weight(0.8f),
+//                        verticalArrangement = Arrangement.spacedBy(8.dp)
+//                    ) {
+//                        RoomButton("입주실", modifier = Modifier.fillMaxWidth())
+//                        RoomButton("사무실", modifier = Modifier.fillMaxWidth())
+//                    }
+//                }
+//            }
             // 상단 닫기 버튼
             IconButton(
                 onClick = onDismiss,
