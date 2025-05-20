@@ -50,17 +50,31 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.viewModels
 import androidx.compose.foundation.border
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.style.TextAlign
 
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jejuckl.viewmodel.MainViewModel
 import com.robotemi.sdk.Robot
+import com.robotemi.sdk.TtsRequest
 import com.robotemi.sdk.listeners.OnGoToLocationStatusChangedListener
 import com.robotemi.sdk.listeners.OnRobotReadyListener
+import kotlinx.coroutines.delay
+
+
 
 class MainActivity : ComponentActivity(), OnRobotReadyListener, OnGoToLocationStatusChangedListener {
-    private var recognizedText by mutableStateOf("버튼을 눌러 말하세요.")
+    private var recognizedText by mutableStateOf("")
     private lateinit var robot: Robot
+    private val viewModel: MainViewModel by viewModels()
+
+
+//    val viewModel: MainViewModel by viewModel()
 
     // Google STT Launcherf
     private val speechRecognizerLauncher = registerForActivityResult(
@@ -70,8 +84,9 @@ class MainActivity : ComponentActivity(), OnRobotReadyListener, OnGoToLocationSt
             val matches = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
             if (!matches.isNullOrEmpty()) {
                 val spokenText = matches[0]
-                Log.d("GoogleSTT", "인식된 텍스트: $spokenText")
+                Log.d("GoogleSTT", "인식된 텍스트:f $spokenText")
                 recognizedText = spokenText
+                viewModel.fetchAIResponse(spokenText) // 🔥 서버에 JSON 요청
             }
         }
     }
@@ -99,12 +114,16 @@ class MainActivity : ComponentActivity(), OnRobotReadyListener, OnGoToLocationSt
         // ⬇️ 리스너 등록 필수
         robot.addOnGoToLocationStatusChangedListener(this)
 
+
         enableEdgeToEdge()
         setContent {
+//            val viewModel: MainViewModel = viewModel()
+            val aiResponse by viewModel.aiResponse.collectAsState()
             Jejuckl_temiTheme {
                 TabletBackgroundScreen(
                     onStartListening = { startVoiceRecognition() },
                     recognizedText = recognizedText,
+                    aiResponse = aiResponse,
                     onMoveToLocation = { locationName -> moveTemiToLocation(locationName) }
                 )
             }
@@ -163,8 +182,10 @@ class MainActivity : ComponentActivity(), OnRobotReadyListener, OnGoToLocationSt
 fun TabletBackgroundScreen(
     onStartListening: () -> Unit,
     recognizedText: String,
+    aiResponse: String, // ✅ 추가
     onMoveToLocation: (String) -> Unit
 ) {
+    val viewModel: MainViewModel = viewModel()
     var showBtn02_02Dialog by remember { mutableStateOf(false) }
     var showBtn02_03Dialog by remember { mutableStateOf(false) }
     var showBtn03_01Dialog by remember { mutableStateOf(false) }
@@ -172,6 +193,7 @@ fun TabletBackgroundScreen(
     var showEducationDialog by remember { mutableStateOf(false) }
     var showSTTDialog by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
+
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -196,16 +218,19 @@ fun TabletBackgroundScreen(
 
         if (showEducationDialog) {
             EducationDialog(
-                url = "https://www.naver.com",
+                url = "https://jejutemi.netlify.app/edu",
                 onDismiss = { showEducationDialog = false },
                 onMoveToLocation = onMoveToLocation // ✅ 추가
             )
         }
         if (showSTTDialog) {
+
             STTDialog(
+                viewModel = viewModel,
                 onDismiss = { showSTTDialog = false },
                 onStartListening = onStartListening,
-                recognizedText = recognizedText
+                recognizedText = recognizedText,
+                aiResponse = aiResponse
             )
         }
         if (showBtn02_02Dialog) {
@@ -217,14 +242,14 @@ fun TabletBackgroundScreen(
         }
         if (showBtn02_03Dialog) {
             EducationDialog(
-                url = "https://example.com/edu02_03",
+                url = "https://jejutemi.netlify.app/room",
                 onDismiss = { showBtn02_03Dialog = false },
                 onMoveToLocation = onMoveToLocation // ✅ 추가
             )
         }
         if (showBtn03_01Dialog) {
             EducationDialog(
-                url = "https://example.com/edu03_01",
+                url = "https://jejutemi.netlify.app/usage",
                 onDismiss = { showBtn03_01Dialog = false },
                 onMoveToLocation = onMoveToLocation // ✅ 추가
             )
@@ -535,10 +560,16 @@ fun RoomButton(label: String, modifier: Modifier = Modifier,onMoveToLocation: (S
 
 @Composable
 fun STTDialog(
+    viewModel: MainViewModel,
     onDismiss: () -> Unit,
     onStartListening: () -> Unit,
-    recognizedText: String
+    recognizedText: String,
+    aiResponse: String,
 ) {
+
+
+
+
     Box(
         Modifier
             .fillMaxSize()
@@ -549,56 +580,148 @@ fun STTDialog(
                 interactionSource = remember { MutableInteractionSource() }
             )
     ) {
+        // 메인 다이얼로그 박스
         Box(
             Modifier
                 .align(Alignment.Center)
-                .padding(start = 50.dp, end = 50.dp, top = 120.dp, bottom = 170.dp)
+                .padding(start = 80.dp, end = 80.dp, top = 120.dp, bottom = 170.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(Color.White)
+                .background(Color(0xFFDAEBFE))
                 .padding(24.dp)
                 .fillMaxWidth()
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
             ) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "음성 인식 결과",
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "닫기")
-                    }
-                }
-                Spacer(Modifier.height(24.dp))
-                Text(
-                    text = recognizedText,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Color.Black,
-                    modifier = Modifier.padding(16.dp)
-                )
-                Spacer(Modifier.height(32.dp))
-                Button(
-                    onClick = onStartListening,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("다시 말하기", color = Color.White, fontSize = 18.sp)
+
+//                Text(
+//                    text = recognizedText,
+//                    fontWeight = FontWeight.Bold,
+//                    fontSize = 20.sp,
+//                    color = Color.Black,
+//                    modifier = Modifier.padding(16.dp)
+//                )
+
+//                    Text(
+//                        text = aiResponse,
+//                        fontWeight = FontWeight.Bold,
+//                        fontSize = 45.sp,
+//                        color = Color(0xFF888888),
+//                        modifier = Modifier
+//                            .padding(30.dp)
+//                            .verticalScroll(rememberScrollState())
+//                            .fillMaxWidth(),
+//                        textAlign = TextAlign.Center,
+//                        lineHeight = 70.sp
+//                    )
+
+                    TypingText(fullText = aiResponse)
+
+//                    val request = TtsRequest.create(aiResponse, false)
+//                    Robot.getInstance().speak(request)
+                    val ttsRequest = remember(aiResponse) {
+                        TtsRequest.create(aiResponse, false)
+                    }
+
+                    LaunchedEffect(ttsRequest) {
+                        Robot.getInstance().speak(ttsRequest)
+                    }
+
+
+
                 }
+
+
+
+
+
+
+
             }
+        }
+
+        // ✅ 이 부분을 BoxScope 안으로 이동
+        IconButton(
+            onClick = {
+                forceStopTTS()
+                viewModel.clearAIResponse() // ✅ aiResponse 초기화
+                onDismiss()
+            },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 70.dp, end = 50.dp)
+                .size(60.dp)
+                .background(Color.LightGray, shape = CircleShape)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "닫기",
+                tint = Color.Black,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+
+        Button(
+            onClick = onStartListening,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 150.dp, start = 150.dp, end = 150.dp)
+        ) {
+            Text("다시 말하기", color = Color.White, fontSize = 30.sp)
         }
     }
 }
+
+
+fun forceStopTTS() {
+    // TTS 중단을 위한 우회 덮어쓰기
+    Robot.getInstance().speak(TtsRequest.create("중단합니다.", false))
+
+
+//    var request = TtsRequest.create(" ", false)
+//    Robot.getInstance().speak(request)
+
+}
+
+@Composable
+fun TypingText(
+    fullText: String,
+    typingDelay: Long = 130L // 한 글자당 지연 시간
+) {
+    var displayedText by remember { mutableStateOf("") }
+
+    LaunchedEffect(fullText) {
+        displayedText = "" // 처음부터 시작
+        for (i in fullText.indices) {
+            displayedText += fullText[i]
+            delay(typingDelay)
+        }
+    }
+
+    Text(
+        text = displayedText,
+        fontWeight = FontWeight.Bold,
+        fontSize = 45.sp,
+        color = Color(0xFF888888),
+        modifier = Modifier
+            .padding(30.dp)
+            .verticalScroll(rememberScrollState())
+            .fillMaxWidth(),
+        textAlign = TextAlign.Left,
+        lineHeight = 70.sp
+    )
+}
+
 
 @Composable
 fun InfoDialog(onDismiss: () -> Unit, onMoveToLocation: (String) -> Unit) {
