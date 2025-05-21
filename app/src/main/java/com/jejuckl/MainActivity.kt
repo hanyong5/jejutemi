@@ -76,6 +76,7 @@ class MainActivity : ComponentActivity(), OnRobotReadyListener, OnGoToLocationSt
     private val viewModel: MainViewModel by viewModels()
 
 
+
 //    val viewModel: MainViewModel by viewModel()
 
     // Google STT Launcherf
@@ -154,30 +155,59 @@ class MainActivity : ComponentActivity(), OnRobotReadyListener, OnGoToLocationSt
         }
     }
 
-    override fun onGoToLocationStatusChanged(location: String, status: String, descriptionId: Int, description: String) {
-        Log.d("TemiControl", "상태 수신: $status, 위치: $location")
-        when (status) {
 
-            "start" -> Log.d("TemiControl", "이동 시작: $location")
-            "complete" -> {
+    private var hasCompleted = false
+
+    override fun onGoToLocationStatusChanged(
+        location: String,
+        status: String,
+        descriptionId: Int,
+        description: String
+    ) {
+        Log.d("TemiControl", "상태 수신: $status, 위치: $location")
+
+        if (status == "start") {
+            Log.d("TemiControl", "이동 시작: $location")
+            hasCompleted = false  // 이동이 시작되면 완료 상태 초기화
+        }
+        else if (status == "complete") {
+            Log.d("TemiControl", "상태: hasCompleted = $hasCompleted")
+
+            if (!hasCompleted) {
+                hasCompleted = true
                 Log.d("TemiControl", "이동 완료: $location")
 
-                // 10초 후 홈베이스로 이동
+                // 로봇 음성 안내도 가능
+                // Robot.getInstance().speak(TtsRequest.create("원하시는 위치에 도착하였습니다. 감사합니다.", false))
+
                 Handler(Looper.getMainLooper()).postDelayed({
                     val target = "home"
+
                     if (robot.locations.contains(target)) {
-                        robot.goTo(target)
-                        Log.d("TemiControl", "$target 위치로 이동 명령 실행")
+                        // ✅ location == "home"이면 이동 생략
+                        if (location == "home") {
+                            Log.d("TemiControl", "이미 $target 위치에 있음 - 이동 생략")
+                            hasCompleted = true
+                        } else {
+                            robot.goTo(target)
+                            Log.d("TemiControl", "$target 위치로 이동 명령 실행")
+                        }
                     } else {
                         Log.e("TemiControl", "$target 위치가 Temi에 등록되어 있지 않습니다.")
                     }
-                    Log.d("TemiControl", "10초 후 홈베이스로 복귀 시작")
-                }, 10000) // 10000ms = 10초
+
+                    Log.d("TemiControl", "10초 후 홈베이스 복귀 로직 실행됨")
+                }, 10000)
             }
-            "abort" -> Log.d("TemiControl", "이동 중단: $location")
-            "error" -> Log.e("TemiControl", "이동 오류: $location - $description")
+        }
+        else if (status == "abort") {
+            Log.d("TemiControl", "이동 중단: $location")
+        }
+        else if (status == "error") {
+            Log.e("TemiControl", "이동 오류: $location - $description")
         }
     }
+
 }
 
 @Composable
@@ -555,10 +585,20 @@ fun RoomButton(label: String, modifier: Modifier = Modifier,onMoveToLocation: (S
                         Text("취소")
                     }
                     Button(
-                        onClick = { 
+                        onClick = {
+
                             // TODO: 테미 이동 명령 실행
                             showDialog = false;
-                            onMoveToLocation(label) // ✅ 여기서 호출
+
+                            val destination = if (label == "편집실 / 장비보관실 / 스튜디오 / 머들코지2") {
+                                "편집실"
+                            } else {
+                                label
+                            }
+                            onMoveToLocation(destination)
+
+
+
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
                     ) {
@@ -738,7 +778,7 @@ fun TypingText(
 @Composable
 fun InfoDialog(onDismiss: () -> Unit, onMoveToLocation: (String) -> Unit) {
     val tabTitles = listOf("1층 안내", "B1층 안내", "이용방법")
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableStateOf(1) }
 
     Box(
         Modifier
@@ -747,70 +787,90 @@ fun InfoDialog(onDismiss: () -> Unit, onMoveToLocation: (String) -> Unit) {
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
-                        awaitPointerEvent().changes.forEach { it.consume() } // 💡 모든 터치 이벤트 소모
+                        awaitPointerEvent() // 💡 모든 터치 이벤트를 여기서 소비
                     }
                 }
             }
-//            .clickable(
-//                onClick = onDismiss,
-//                indication = null,
-//                interactionSource = remember { MutableInteractionSource() }
-//            )
+//            .clickable(enabled = true, onClick = {}) // 💡 터치 이벤트 소모
     ) {
 
         // 메인 다이얼로그 박스
         Box(
             Modifier
                 .align(Alignment.Center)
-                .padding(start = 50.dp, end = 50.dp, top = 90.dp, bottom = 80.dp)
+                .padding(start = 50.dp, end = 50.dp, top = 50.dp, bottom = 80.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(Color(0xFFDAEBFE))
-                .padding(16.dp)
+                .border(16.dp, Color(0xFFDAEBFE), RoundedCornerShape(16.dp))
+                .background(Color.White)
+                .padding(40.dp)
                 .fillMaxWidth()
         ) {
-            Row(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
 
-                // 좌측 탭 메뉴 (세로 버튼 리스트)
+                // ✅ 타이틀과 밑줄 추가
                 Column(
-                    modifier = Modifier
-                        .background(Color.White)
-                        .width(120.dp)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.fillMaxWidth(),
+
                 ) {
-                    tabTitles.forEachIndexed { index, title ->
-                        Button(
-                            onClick = { selectedTab = index },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (selectedTab == index) Color(0xFF2196F3) else Color.White,
-                                contentColor = if (selectedTab == index) Color.White else Color.Black
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(title)
-                        }
-                    }
+                    Text(
+                        text = "시설안내 및 에스코트",
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .height(2.dp)
+                            .fillMaxWidth()
+                            .background(Color.Gray)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // 우측 콘텐츠 (이미지 or 설명)
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .padding(start = 24.dp)
-                        .background(Color.White)
-                        .padding(16.dp)
-                ) {
-                    when (selectedTab) {
-                        0 -> {
-                            Image(
-                                painter = painterResource(id = R.drawable.building01),
-                                contentDescription = "1층 안내",
-                                contentScale = ContentScale.Fit,
-                                modifier = Modifier.fillMaxSize()
-                            )
+                Row(modifier = Modifier.fillMaxSize()) {
+
+                    // 좌측 탭 메뉴 (세로 버튼 리스트)
+                    Column(
+                        modifier = Modifier
+                            .background(Color.White)
+                            .width(200.dp)
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        tabTitles.forEachIndexed { index, title ->
+                            Button(
+                                onClick = { selectedTab = index },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (selectedTab == index) Color(0xFF2196F3) else Color.White,
+                                    contentColor = if (selectedTab == index) Color.White else Color.Black
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(title,fontSize = 28.sp)
+                            }
                         }
-                        1 -> {
+                    }
+
+                    // 우측 콘텐츠 (이미지 or 설명)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(start = 24.dp)
+                            .background(Color.White)
+                            .padding(16.dp)
+                    ) {
+                        when (selectedTab) {
+                            0 -> {
+                                Image(
+                                    painter = painterResource(id = R.drawable.building01),
+                                    contentDescription = "1층 안내",
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                            1 -> {
 
 
 
@@ -824,76 +884,66 @@ fun InfoDialog(onDismiss: () -> Unit, onMoveToLocation: (String) -> Unit) {
 
 
 
-                            var showDialog by remember { mutableStateOf(false) }
-                            var targetRoom by remember { mutableStateOf("") }
+                                var showDialog by remember { mutableStateOf(false) }
+                                var targetRoom by remember { mutableStateOf("") }
 
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                // 🖼 지하 1층 안내 이미지
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    // 🖼 지하 1층 안내 이미지
+                                    Image(
+                                        painter = painterResource(id = R.drawable.building02),
+                                        contentDescription = "지하1층 안내",
+                                        contentScale = ContentScale.Fit,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+
+
+
+                                    // ✅ 위치 이동 확인 다이얼로그
+                                    if (showDialog) {
+                                        AlertDialog(
+                                            onDismissRequest = { showDialog = false },
+                                            title = { Text("테미 이동") },
+                                            text = { Text("$targetRoom 으로 이동하시겠습니까?") },
+                                            confirmButton = {
+                                                Button(
+                                                    onClick = {
+                                                        showDialog = false
+                                                        onMoveToLocation(targetRoom)
+                                                    }
+                                                ) {
+                                                    Text("이동")
+                                                }
+                                            },
+                                            dismissButton = {
+                                                OutlinedButton(onClick = { showDialog = false }) {
+                                                    Text("취소")
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+
+                                // 위치 버튼 1
+                                LocationMarker(x = 410.dp, y = 120.dp, label = "1", room = "스튜디오", onMoveToLocation)
+                                LocationMarker(x = 410.dp, y = 300.dp, label = "2", room = "편집실", onMoveToLocation)
+                                LocationMarker(x = 620.dp, y = 180.dp, label = "3", room = "편집실", onMoveToLocation)
+                                LocationMarker(x = 750.dp, y = 360.dp, label = "4", room = "편집실", onMoveToLocation)
+
+                            }
+                            2 -> {
                                 Image(
-                                    painter = painterResource(id = R.drawable.building02),
-                                    contentDescription = "지하1층 안내",
+                                    painter = painterResource(id = R.drawable.building_detail),
+                                    contentDescription = "안내",
                                     contentScale = ContentScale.Fit,
                                     modifier = Modifier.fillMaxSize()
                                 )
-
-                                // 🔵 원형 위치 버튼 (예: 좌측 상단에 위치)
-                                Box(
-                                    modifier = Modifier
-                                        .offset(x = 100.dp, y = 120.dp) // 위치 조정
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.Red.copy(alpha = 0.7f))
-                                        .clickable {
-                                            targetRoom = "스튜디오" // 해당 위치 이름
-                                            showDialog = true
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("1", color = Color.White, fontSize = 16.sp)
-                                }
-
-                                // ✅ 위치 이동 확인 다이얼로그
-                                if (showDialog) {
-                                    AlertDialog(
-                                        onDismissRequest = { showDialog = false },
-                                        title = { Text("테미 이동") },
-                                        text = { Text("$targetRoom 으로 이동하시겠습니까?") },
-                                        confirmButton = {
-                                            Button(
-                                                onClick = {
-                                                    showDialog = false
-                                                    onMoveToLocation(targetRoom)
-                                                }
-                                            ) {
-                                                Text("이동")
-                                            }
-                                        },
-                                        dismissButton = {
-                                            OutlinedButton(onClick = { showDialog = false }) {
-                                                Text("취소")
-                                            }
-                                        }
-                                    )
-                                }
                             }
-
-                            // 위치 버튼 1
-                            LocationMarker(x = 100.dp, y = 120.dp, label = "1", room = "스튜디오", onMoveToLocation)
-                            // 위치 버튼 2
-                            LocationMarker(x = 250.dp, y = 160.dp, label = "2", room = "편집실", onMoveToLocation)
-
-                        }
-                        2 -> {
-                            Image(
-                                painter = painterResource(id = R.drawable.building_detail),
-                                contentDescription = "안내",
-                                contentScale = ContentScale.Fit,
-                                modifier = Modifier.fillMaxSize()
-                            )
                         }
                     }
                 }
             }
+
+
         }
 
         // 닫기 버튼
@@ -914,10 +964,10 @@ fun InfoDialog(onDismiss: () -> Unit, onMoveToLocation: (String) -> Unit) {
         }
 
         // 하단 룸 버튼들
-        RoomButtonSection(
-            modifier = Modifier.align(Alignment.BottomCenter),
-            onMoveToLocation = onMoveToLocation
-        )
+//        RoomButtonSection(
+//            modifier = Modifier.align(Alignment.BottomCenter),
+//            onMoveToLocation = onMoveToLocation
+//        )
     }
 }
 
