@@ -55,7 +55,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -242,7 +244,7 @@ fun TabletBackgroundScreen(
         }
         if (showBtn02_03Dialog) {
             EducationDialog(
-                url = "https://jejutemi.netlify.app/room",
+                url = "https://jejutemi.netlify.app/equip",
                 onDismiss = { showBtn02_03Dialog = false },
                 onMoveToLocation = onMoveToLocation // ✅ 추가
             )
@@ -281,12 +283,12 @@ fun CustomGridMenu(
             modifier = Modifier
                 .weight(0.9f)
                 .fillMaxHeight(),
-            bgColor = Color.Blue,
+            bgColor =  Color(0xFF7B39F6),
             bgAlpha = 0.7f,
             onClick = onFirstButtonClick
         )
 
-        // 가운데 보라색 버튼 그룹
+        // 가운데 버튼 그룹
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -361,7 +363,7 @@ fun CustomGridMenu(
 fun MenuButton(
     iconResId: Int,
     modifier: Modifier = Modifier,
-    bgColor: Color = Color(0xFF2196F3),
+    bgColor: Color = Color(0xFF47A5F1),
     bgAlpha: Float = 0.4f,
     onClick: (() -> Unit)? = null
 ) {
@@ -452,59 +454,72 @@ fun EducationDialog(
 
 
 
+        RoomButtonSection(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            onMoveToLocation = onMoveToLocation
+        )
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 70.dp, start = 130.dp, end = 130.dp)
-                .background(Color.Yellow)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-//                    .padding(8.dp)
-//                    .border(1.dp, Color.Black)
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(
-                    modifier = Modifier.weight(3.6f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        RoomButton("창작실", Modifier.weight(1f),onMoveToLocation)
-                        RoomButton("회의실", Modifier.weight(1f),onMoveToLocation)
-                        RoomButton("교육실1", Modifier.weight(1f),onMoveToLocation)
-                        RoomButton("교육실2", Modifier.weight(1f),onMoveToLocation)
-                    }
-                    RoomButton(
-                        "편집실 / 장비보관실 / 스튜디오 / 머들코지2",
-                        modifier = Modifier.fillMaxWidth(),onMoveToLocation
-                    )
-                }
-
-                Column(
-                    modifier = Modifier
-                        .weight(0.8f)
-                        .padding(horizontal = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    RoomButton("콘텐츠공작소", modifier = Modifier.fillMaxWidth(),onMoveToLocation)
-                    RoomButton("정수기", modifier = Modifier.fillMaxWidth(),onMoveToLocation)
-                }
-
-                Column(
-                    modifier = Modifier.weight(0.8f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    RoomButton("입주실", modifier = Modifier.fillMaxWidth(),onMoveToLocation)
-                    RoomButton("사무실", modifier = Modifier.fillMaxWidth(),onMoveToLocation)
-                }
-            }
-        }
 
     }
 }
+
+
+@Composable
+fun RoomButtonSection(
+    modifier: Modifier = Modifier,
+    onMoveToLocation: (String) -> Unit
+) {
+    Box(
+        modifier = modifier
+            .padding(bottom = 70.dp, start = 130.dp, end = 130.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0x5E2872F3))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier.weight(3.6f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RoomButton("창작실", Modifier.weight(1f), onMoveToLocation)
+                    RoomButton("회의실", Modifier.weight(1f), onMoveToLocation)
+                    RoomButton("교육실1", Modifier.weight(1f), onMoveToLocation)
+                    RoomButton("교육실2", Modifier.weight(1f), onMoveToLocation)
+                }
+                RoomButton(
+                    "편집실 / 장비보관실 / 스튜디오 / 머들코지2",
+                    modifier = Modifier.fillMaxWidth(),
+                    onMoveToLocation = onMoveToLocation
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .weight(0.8f)
+                    .padding(horizontal = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                RoomButton("콘텐츠공작소", modifier = Modifier.fillMaxWidth(), onMoveToLocation)
+                RoomButton("정수기", modifier = Modifier.fillMaxWidth(), onMoveToLocation)
+            }
+
+            Column(
+                modifier = Modifier.weight(0.8f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                RoomButton("입주실", modifier = Modifier.fillMaxWidth(), onMoveToLocation)
+                RoomButton("사무실", modifier = Modifier.fillMaxWidth(), onMoveToLocation)
+            }
+        }
+    }
+}
+
+
 
 @Composable
 fun RoomButton(label: String, modifier: Modifier = Modifier,onMoveToLocation: (String) -> Unit) {
@@ -566,8 +581,6 @@ fun STTDialog(
     recognizedText: String,
     aiResponse: String,
 ) {
-
-
 
 
     Box(
@@ -722,26 +735,30 @@ fun TypingText(
     )
 }
 
-
 @Composable
 fun InfoDialog(onDismiss: () -> Unit, onMoveToLocation: (String) -> Unit) {
-    val tabTitles = listOf("1층 안내", "2층 안내", "시설안내")
+    val tabTitles = listOf("1층 안내", "B1층 안내", "이용방법")
     var selectedTab by remember { mutableStateOf(0) }
-    val tabContents = listOf(
-        "1층에는 안내데스크, 로비, 카페가 있습니다.",
-        "2층에는 회의실, 교육실, 사무실이 있습니다.",
-        "시설 이용시간은 09:00~18:00입니다."
-    )
+
     Box(
         Modifier
             .fillMaxSize()
             .background(Color(0x88000000))
-            .clickable(
-                onClick = onDismiss,
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            )
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent().changes.forEach { it.consume() } // 💡 모든 터치 이벤트 소모
+                    }
+                }
+            }
+//            .clickable(
+//                onClick = onDismiss,
+//                indication = null,
+//                interactionSource = remember { MutableInteractionSource() }
+//            )
     ) {
+
+        // 메인 다이얼로그 박스
         Box(
             Modifier
                 .align(Alignment.Center)
@@ -752,109 +769,337 @@ fun InfoDialog(onDismiss: () -> Unit, onMoveToLocation: (String) -> Unit) {
                 .fillMaxWidth()
         ) {
             Row(modifier = Modifier.fillMaxSize()) {
-                // 좌측 탭
+
+                // 좌측 탭 메뉴 (세로 버튼 리스트)
                 Column(
                     modifier = Modifier
+                        .background(Color.White)
                         .width(120.dp)
                         .fillMaxHeight(),
-                    verticalArrangement = Arrangement.Top
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    tabTitles.forEachIndexed { idx, title ->
+                    tabTitles.forEachIndexed { index, title ->
                         Button(
-                            onClick = { selectedTab = idx },
+                            onClick = { selectedTab = index },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (selectedTab == idx) Color(0xFF2196F3) else Color.White,
-                                contentColor = if (selectedTab == idx) Color.White else Color.Black
+                                containerColor = if (selectedTab == index) Color(0xFF2196F3) else Color.White,
+                                contentColor = if (selectedTab == index) Color.White else Color.Black
                             ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(title, fontWeight = FontWeight.Bold)
+                            Text(title)
                         }
                     }
                 }
-                // 우측 내용
-                Column(
+
+                // 우측 콘텐츠 (이미지 or 설명)
+                Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .padding(start = 24.dp),
-                    verticalArrangement = Arrangement.Top
+                        .padding(start = 24.dp)
+                        .background(Color.White)
+                        .padding(16.dp)
                 ) {
-                    Text(
-                        text = tabContents[selectedTab],
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
-                    )
+                    when (selectedTab) {
+                        0 -> {
+                            Image(
+                                painter = painterResource(id = R.drawable.building01),
+                                contentDescription = "1층 안내",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        1 -> {
+
+
+
+
+//                            Image(
+//                                painter = painterResource(id = R.drawable.building02),
+//                                contentDescription = "지하1층 안내",
+//                                contentScale = ContentScale.Fit,
+//                                modifier = Modifier.fillMaxSize()
+//                            )
+
+
+
+                            var showDialog by remember { mutableStateOf(false) }
+                            var targetRoom by remember { mutableStateOf("") }
+
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                // 🖼 지하 1층 안내 이미지
+                                Image(
+                                    painter = painterResource(id = R.drawable.building02),
+                                    contentDescription = "지하1층 안내",
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+
+                                // 🔵 원형 위치 버튼 (예: 좌측 상단에 위치)
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = 100.dp, y = 120.dp) // 위치 조정
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Red.copy(alpha = 0.7f))
+                                        .clickable {
+                                            targetRoom = "스튜디오" // 해당 위치 이름
+                                            showDialog = true
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("1", color = Color.White, fontSize = 16.sp)
+                                }
+
+                                // ✅ 위치 이동 확인 다이얼로그
+                                if (showDialog) {
+                                    AlertDialog(
+                                        onDismissRequest = { showDialog = false },
+                                        title = { Text("테미 이동") },
+                                        text = { Text("$targetRoom 으로 이동하시겠습니까?") },
+                                        confirmButton = {
+                                            Button(
+                                                onClick = {
+                                                    showDialog = false
+                                                    onMoveToLocation(targetRoom)
+                                                }
+                                            ) {
+                                                Text("이동")
+                                            }
+                                        },
+                                        dismissButton = {
+                                            OutlinedButton(onClick = { showDialog = false }) {
+                                                Text("취소")
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+
+                            // 위치 버튼 1
+                            LocationMarker(x = 100.dp, y = 120.dp, label = "1", room = "스튜디오", onMoveToLocation)
+                            // 위치 버튼 2
+                            LocationMarker(x = 250.dp, y = 160.dp, label = "2", room = "편집실", onMoveToLocation)
+
+                        }
+                        2 -> {
+                            Image(
+                                painter = painterResource(id = R.drawable.building_detail),
+                                contentDescription = "안내",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
                 }
             }
-//            // 하단 RoomButton 레이어 (교육안내와 동일)
-//            Box(
-//                modifier = Modifier
-//                    .align(Alignment.BottomCenter)
-//                    .padding(bottom = 0.dp, start = 80.dp, end = 80.dp)
-//                    .background(Color.Yellow)
-//            ) {
-//                Row(
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .padding(16.dp),
-//                    horizontalArrangement = Arrangement.SpaceBetween
-//                ) {
-//                    Column(
-//                        modifier = Modifier.weight(3.6f),
-//                        verticalArrangement = Arrangement.spacedBy(8.dp)
-//                    ) {
-//                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-//                            RoomButton("창작실", Modifier.weight(1f))
-//                            RoomButton("회의실", Modifier.weight(1f))
-//                            RoomButton("교육실1", Modifier.weight(1f))
-//                            RoomButton("교육실2", Modifier.weight(1f))
-//                        }
-//                        RoomButton(
-//                            "편집실 / 장비보관실 / 스튜디오 / 머들코지1",
-//                            modifier = Modifier.fillMaxWidth()
-//                        )
-//                    }
-//                    Column(
-//                        modifier = Modifier
-//                            .weight(0.8f)
-//                            .padding(horizontal = 8.dp),
-//                        verticalArrangement = Arrangement.spacedBy(8.dp)
-//                    ) {
-//                        RoomButton("콘텐츠공작소", modifier = Modifier.fillMaxWidth())
-//                        RoomButton("정수기", modifier = Modifier.fillMaxWidth())
-//                    }
-//                    Column(
-//                        modifier = Modifier.weight(0.8f),
-//                        verticalArrangement = Arrangement.spacedBy(8.dp)
-//                    ) {
-//                        RoomButton("입주실", modifier = Modifier.fillMaxWidth())
-//                        RoomButton("사무실", modifier = Modifier.fillMaxWidth())
-//                    }
-//                }
-//            }
-            // 상단 닫기 버튼
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 10.dp, end = 10.dp)
-                    .size(48.dp)
-                    .background(Color.LightGray, shape = CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "닫기",
-                    tint = Color.Black,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
         }
+
+        // 닫기 버튼
+        IconButton(
+            onClick = onDismiss,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 70.dp, end = 40.dp)
+                .size(60.dp)
+                .background(Color.LightGray, shape = CircleShape)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "닫기",
+                tint = Color.Black,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+
+        // 하단 룸 버튼들
+        RoomButtonSection(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            onMoveToLocation = onMoveToLocation
+        )
     }
 }
+
+
+
+@Composable
+fun LocationMarker(
+    x: Dp,
+    y: Dp,
+    label: String,
+    room: String,
+    onMoveToLocation: (String) -> Unit
+) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier
+            .offset(x = x, y = y)
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(Color.Red.copy(alpha = 0.8f))
+            .clickable { showDialog = true },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = Color.White, fontWeight = FontWeight.Bold)
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("테미 이동") },
+            text = { Text("$room 으로 이동하시겠습니까?") },
+            confirmButton = {
+                Button(onClick = {
+                    showDialog = false
+                    onMoveToLocation(room)
+                }) {
+                    Text("이동")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+}
+
+
+//@Composable
+//fun InfoDialog(onDismiss: () -> Unit, onMoveToLocation: (String) -> Unit) {
+//    val tabTitles = listOf("1층 안내", "2층 안내", "시설안내")
+//    var selectedTab by remember { mutableStateOf(0) }
+//    val tabContents = listOf(
+//        "1층에는 안내데스크, 로비, 카페가 있습니다.",
+//        "2층에는 회의실, 교육실, 사무실이 있습니다.",
+//        "시설 이용시간은 09:00~18:00입니다."
+//    )
+//    Box(
+//        Modifier
+//            .fillMaxSize()
+//            .background(Color(0x88000000))
+//            .clickable(
+//                onClick = onDismiss,
+//                indication = null,
+//                interactionSource = remember { MutableInteractionSource() }
+//            )
+//    ) {
+//        Box(
+//            Modifier
+//                .align(Alignment.Center)
+//                .padding(start = 50.dp, end = 50.dp, top = 90.dp, bottom = 80.dp)
+//                .clip(RoundedCornerShape(16.dp))
+//                .background(Color(0xFFDAEBFE))
+//                .padding(16.dp)
+//                .fillMaxWidth()
+//        ) {
+//            Row(modifier = Modifier.fillMaxSize()) {
+//                // 좌측 탭
+//                Column(
+//                    modifier = Modifier
+//                        .width(120.dp)
+//                        .fillMaxHeight(),
+//                    verticalArrangement = Arrangement.Top
+//                ) {
+//                    tabTitles.forEachIndexed { idx, title ->
+//                        Button(
+//                            onClick = { selectedTab = idx },
+//                            colors = ButtonDefaults.buttonColors(
+//                                containerColor = if (selectedTab == idx) Color(0xFF2196F3) else Color.White,
+//                                contentColor = if (selectedTab == idx) Color.White else Color.Black
+//                            ),
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .padding(vertical = 4.dp)
+//                        ) {
+//                            Text(title, fontWeight = FontWeight.Bold)
+//                        }
+//                    }
+//                }
+//                // 우측 내용
+//                Column(
+//                    modifier = Modifier
+//                        .weight(1f)
+//                        .fillMaxHeight()
+//                        .padding(start = 24.dp),
+//                    verticalArrangement = Arrangement.Top
+//                ) {
+//                    Text(
+//                        text = tabContents[selectedTab],
+//                        fontSize = 20.sp,
+//                        fontWeight = FontWeight.Medium,
+//                        modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
+//                    )
+//                }
+//            }
+////            // 하단 RoomButton 레이어 (교육안내와 동일)
+////            Box(
+////                modifier = Modifier
+////                    .align(Alignment.BottomCenter)
+////                    .padding(bottom = 0.dp, start = 80.dp, end = 80.dp)
+////                    .background(Color.Yellow)
+////            ) {
+////                Row(
+////                    modifier = Modifier
+////                        .fillMaxWidth()
+////                        .padding(16.dp),
+////                    horizontalArrangement = Arrangement.SpaceBetween
+////                ) {
+////                    Column(
+////                        modifier = Modifier.weight(3.6f),
+////                        verticalArrangement = Arrangement.spacedBy(8.dp)
+////                    ) {
+////                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+////                            RoomButton("창작실", Modifier.weight(1f))
+////                            RoomButton("회의실", Modifier.weight(1f))
+////                            RoomButton("교육실1", Modifier.weight(1f))
+////                            RoomButton("교육실2", Modifier.weight(1f))
+////                        }
+////                        RoomButton(
+////                            "편집실 / 장비보관실 / 스튜디오 / 머들코지1",
+////                            modifier = Modifier.fillMaxWidth()
+////                        )
+////                    }
+////                    Column(
+////                        modifier = Modifier
+////                            .weight(0.8f)
+////                            .padding(horizontal = 8.dp),
+////                        verticalArrangement = Arrangement.spacedBy(8.dp)
+////                    ) {
+////                        RoomButton("콘텐츠공작소", modifier = Modifier.fillMaxWidth())
+////                        RoomButton("정수기", modifier = Modifier.fillMaxWidth())
+////                    }
+////                    Column(
+////                        modifier = Modifier.weight(0.8f),
+////                        verticalArrangement = Arrangement.spacedBy(8.dp)
+////                    ) {
+////                        RoomButton("입주실", modifier = Modifier.fillMaxWidth())
+////                        RoomButton("사무실", modifier = Modifier.fillMaxWidth())
+////                    }
+////                }
+////            }
+//            // 상단 닫기 버튼
+//            IconButton(
+//                onClick = onDismiss,
+//                modifier = Modifier
+//                    .align(Alignment.TopEnd)
+//                    .padding(top = 10.dp, end = 10.dp)
+//                    .size(48.dp)
+//                    .background(Color.LightGray, shape = CircleShape)
+//            ) {
+//                Icon(
+//                    imageVector = Icons.Default.Close,
+//                    contentDescription = "닫기",
+//                    tint = Color.Black,
+//                    modifier = Modifier.size(28.dp)
+//                )
+//            }
+//        }
+//    }
+//}
 
 
 
