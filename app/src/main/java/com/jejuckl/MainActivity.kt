@@ -51,6 +51,12 @@ import androidx.compose.material3.ButtonDefaults
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.viewModels
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -470,7 +476,7 @@ fun EducationDialog(
             onClick = onDismiss,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 70.dp, end = 50.dp)
+                .padding(top = 70.dp, end = 30.dp)
                 .size(60.dp) // 동그라미 크기
                 .background(Color.LightGray, shape = CircleShape) // 원형 배경
         ) {
@@ -565,18 +571,18 @@ fun RoomButton(label: String, modifier: Modifier = Modifier,onMoveToLocation: (S
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("테미 이동") },
+            title = { Text("${label}로 이동 하시겠습니까?") },
             text = { 
                 Column {
-                    Text("${label}으로 테미를 이동하시겠습니까?")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("이동을 시작합니다...", color = Color.Gray)
+                    //Text("${label}으로 테미를 이동하시겠습니까?")
+//                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("이동버튼을 클릭하시면 원하시는 곳으로 이동합니다.", color = Color.Black)
                 }
             },
             confirmButton = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.End
                 ) {
                     Button(
                         onClick = { showDialog = false },
@@ -584,6 +590,7 @@ fun RoomButton(label: String, modifier: Modifier = Modifier,onMoveToLocation: (S
                     ) {
                         Text("취소")
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
 
@@ -656,48 +663,54 @@ fun STTDialog(
                     contentAlignment = Alignment.Center
                 ) {
 
-//                Text(
-//                    text = recognizedText,
-//                    fontWeight = FontWeight.Bold,
-//                    fontSize = 20.sp,
-//                    color = Color.Black,
-//                    modifier = Modifier.padding(16.dp)
-//                )
+                    when {
+                        aiResponse.isBlank() -> {
+                            // ✨ 점멸 애니메이션: 응답 대기 중
+                            val infiniteTransition = rememberInfiniteTransition()
+                            val alpha by infiniteTransition.animateFloat(
+                                initialValue = 0.3f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(800, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Reverse
+                                )
+                            )
 
-//                    Text(
-//                        text = aiResponse,
-//                        fontWeight = FontWeight.Bold,
-//                        fontSize = 45.sp,
-//                        color = Color(0xFF888888),
-//                        modifier = Modifier
-//                            .padding(30.dp)
-//                            .verticalScroll(rememberScrollState())
-//                            .fillMaxWidth(),
-//                        textAlign = TextAlign.Center,
-//                        lineHeight = 70.sp
-//                    )
+                            Text(
+                                text = "지금 응답 준비 중...",
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.DarkGray.copy(alpha = alpha)
+                            )
+                        }
 
-                    TypingText(fullText = aiResponse)
+                        aiResponse.contains("중단", ignoreCase = true) ||
+                                aiResponse.contains("에러", ignoreCase = true) ||
+                                aiResponse.length < 5 -> {
+                            // ⚠️ 오류 또는 응답 멈춤으로 판단
+                            Text(
+                                text = "다시 말하기 버튼을 클릭 하세요",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.Red
+                            )
+                        }
 
-//                    val request = TtsRequest.create(aiResponse, false)
-//                    Robot.getInstance().speak(request)
-                    val ttsRequest = remember(aiResponse) {
-                        TtsRequest.create(aiResponse, false)
+                        else -> {
+                            // ✅ 정상 응답 출력
+                            TypingText(fullText = aiResponse)
+
+                            val ttsRequest = remember(aiResponse) {
+                                TtsRequest.create(aiResponse, false)
+                            }
+
+                            LaunchedEffect(ttsRequest) {
+                                Robot.getInstance().speak(ttsRequest)
+                            }
+                        }
                     }
-
-                    LaunchedEffect(ttsRequest) {
-                        Robot.getInstance().speak(ttsRequest)
-                    }
-
-
 
                 }
-
-
-
-
-
-
 
             }
         }
@@ -711,7 +724,7 @@ fun STTDialog(
             },
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 70.dp, end = 50.dp)
+                .padding(top = 80.dp, end = 50.dp)
                 .size(60.dp)
                 .background(Color.LightGray, shape = CircleShape)
         ) {
@@ -730,7 +743,7 @@ fun STTDialog(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 150.dp, start = 150.dp, end = 150.dp)
         ) {
-            Text("다시 말하기", color = Color.White, fontSize = 30.sp)
+            Text("다시 말하기", color = Color.White, fontSize = 30.sp,modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
         }
     }
 }
@@ -739,11 +752,6 @@ fun STTDialog(
 fun forceStopTTS() {
     // TTS 중단을 위한 우회 덮어쓰기
     Robot.getInstance().speak(TtsRequest.create("중단합니다.", false))
-
-
-//    var request = TtsRequest.create(" ", false)
-//    Robot.getInstance().speak(request)
-
 }
 
 @Composable
@@ -951,7 +959,7 @@ fun InfoDialog(onDismiss: () -> Unit, onMoveToLocation: (String) -> Unit) {
             onClick = onDismiss,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 70.dp, end = 40.dp)
+                .padding(top = 40.dp, end = 30.dp)
                 .size(60.dp)
                 .background(Color.LightGray, shape = CircleShape)
         ) {
@@ -995,11 +1003,18 @@ fun LocationMarker(
         Text(label, color = Color.White, fontWeight = FontWeight.Bold)
     }
 
+
+
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("테미 이동") },
-            text = { Text("$room 으로 이동하시겠습니까?") },
+            title = {
+                Text(
+                    "$room 로 이동하시겠습니까?",
+                    modifier = Modifier.width(600.dp) // ✅ 너비 설정
+                )
+            },
+            text = { Text("이동버튼을 클릭하시면 원하시는 곳으로 이동합니다.") },
             confirmButton = {
                 Button(onClick = {
                     showDialog = false
@@ -1017,139 +1032,6 @@ fun LocationMarker(
     }
 }
 
-
-//@Composable
-//fun InfoDialog(onDismiss: () -> Unit, onMoveToLocation: (String) -> Unit) {
-//    val tabTitles = listOf("1층 안내", "2층 안내", "시설안내")
-//    var selectedTab by remember { mutableStateOf(0) }
-//    val tabContents = listOf(
-//        "1층에는 안내데스크, 로비, 카페가 있습니다.",
-//        "2층에는 회의실, 교육실, 사무실이 있습니다.",
-//        "시설 이용시간은 09:00~18:00입니다."
-//    )
-//    Box(
-//        Modifier
-//            .fillMaxSize()
-//            .background(Color(0x88000000))
-//            .clickable(
-//                onClick = onDismiss,
-//                indication = null,
-//                interactionSource = remember { MutableInteractionSource() }
-//            )
-//    ) {
-//        Box(
-//            Modifier
-//                .align(Alignment.Center)
-//                .padding(start = 50.dp, end = 50.dp, top = 90.dp, bottom = 80.dp)
-//                .clip(RoundedCornerShape(16.dp))
-//                .background(Color(0xFFDAEBFE))
-//                .padding(16.dp)
-//                .fillMaxWidth()
-//        ) {
-//            Row(modifier = Modifier.fillMaxSize()) {
-//                // 좌측 탭
-//                Column(
-//                    modifier = Modifier
-//                        .width(120.dp)
-//                        .fillMaxHeight(),
-//                    verticalArrangement = Arrangement.Top
-//                ) {
-//                    tabTitles.forEachIndexed { idx, title ->
-//                        Button(
-//                            onClick = { selectedTab = idx },
-//                            colors = ButtonDefaults.buttonColors(
-//                                containerColor = if (selectedTab == idx) Color(0xFF2196F3) else Color.White,
-//                                contentColor = if (selectedTab == idx) Color.White else Color.Black
-//                            ),
-//                            modifier = Modifier
-//                                .fillMaxWidth()
-//                                .padding(vertical = 4.dp)
-//                        ) {
-//                            Text(title, fontWeight = FontWeight.Bold)
-//                        }
-//                    }
-//                }
-//                // 우측 내용
-//                Column(
-//                    modifier = Modifier
-//                        .weight(1f)
-//                        .fillMaxHeight()
-//                        .padding(start = 24.dp),
-//                    verticalArrangement = Arrangement.Top
-//                ) {
-//                    Text(
-//                        text = tabContents[selectedTab],
-//                        fontSize = 20.sp,
-//                        fontWeight = FontWeight.Medium,
-//                        modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
-//                    )
-//                }
-//            }
-////            // 하단 RoomButton 레이어 (교육안내와 동일)
-////            Box(
-////                modifier = Modifier
-////                    .align(Alignment.BottomCenter)
-////                    .padding(bottom = 0.dp, start = 80.dp, end = 80.dp)
-////                    .background(Color.Yellow)
-////            ) {
-////                Row(
-////                    modifier = Modifier
-////                        .fillMaxWidth()
-////                        .padding(16.dp),
-////                    horizontalArrangement = Arrangement.SpaceBetween
-////                ) {
-////                    Column(
-////                        modifier = Modifier.weight(3.6f),
-////                        verticalArrangement = Arrangement.spacedBy(8.dp)
-////                    ) {
-////                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-////                            RoomButton("창작실", Modifier.weight(1f))
-////                            RoomButton("회의실", Modifier.weight(1f))
-////                            RoomButton("교육실1", Modifier.weight(1f))
-////                            RoomButton("교육실2", Modifier.weight(1f))
-////                        }
-////                        RoomButton(
-////                            "편집실 / 장비보관실 / 스튜디오 / 머들코지1",
-////                            modifier = Modifier.fillMaxWidth()
-////                        )
-////                    }
-////                    Column(
-////                        modifier = Modifier
-////                            .weight(0.8f)
-////                            .padding(horizontal = 8.dp),
-////                        verticalArrangement = Arrangement.spacedBy(8.dp)
-////                    ) {
-////                        RoomButton("콘텐츠공작소", modifier = Modifier.fillMaxWidth())
-////                        RoomButton("정수기", modifier = Modifier.fillMaxWidth())
-////                    }
-////                    Column(
-////                        modifier = Modifier.weight(0.8f),
-////                        verticalArrangement = Arrangement.spacedBy(8.dp)
-////                    ) {
-////                        RoomButton("입주실", modifier = Modifier.fillMaxWidth())
-////                        RoomButton("사무실", modifier = Modifier.fillMaxWidth())
-////                    }
-////                }
-////            }
-//            // 상단 닫기 버튼
-//            IconButton(
-//                onClick = onDismiss,
-//                modifier = Modifier
-//                    .align(Alignment.TopEnd)
-//                    .padding(top = 10.dp, end = 10.dp)
-//                    .size(48.dp)
-//                    .background(Color.LightGray, shape = CircleShape)
-//            ) {
-//                Icon(
-//                    imageVector = Icons.Default.Close,
-//                    contentDescription = "닫기",
-//                    tint = Color.Black,
-//                    modifier = Modifier.size(28.dp)
-//                )
-//            }
-//        }
-//    }
-//}
 
 
 
