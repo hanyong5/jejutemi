@@ -15,6 +15,9 @@ class MainViewModel : ViewModel() {
     private val _aiResponse = MutableStateFlow("")
     val aiResponse = _aiResponse.asStateFlow()
 
+    private val _recognizedText = MutableStateFlow("")
+    val recognizedText = _recognizedText.asStateFlow()
+
     fun fetchAIResponse(message: String) {
         viewModelScope.launch {
             try {
@@ -33,7 +36,22 @@ class MainViewModel : ViewModel() {
         }
 
     }
-    fun clearAIResponse() {
-        _aiResponse.value = "" // ✅ 초기화
+    fun updateRecognizedText(text: String) {
+        _recognizedText.value = text
     }
+
+    fun clearAIResponse() {
+        _aiResponse.value = ""
+    }
+
+    fun clearRecognizedText() {
+        _recognizedText.value = ""
+    }
+
+    fun clearAll() {
+        clearAIResponse()
+        clearRecognizedText()
+    }
+
+
 }

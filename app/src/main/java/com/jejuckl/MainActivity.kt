@@ -444,7 +444,7 @@ fun EducationDialog(
         Box(
             Modifier
                 .align(Alignment.Center)
-                .padding(start = 50.dp, end = 50.dp, top = 90.dp, bottom = 80.dp)
+                .padding(start = 50.dp, end = 50.dp, top = 70.dp, bottom = 90.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(Color(0xFFDAEBFE))
                 .padding(16.dp)
@@ -476,7 +476,7 @@ fun EducationDialog(
             onClick = onDismiss,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 70.dp, end = 30.dp)
+                .padding(top = 50.dp, end = 30.dp)
                 .size(60.dp) // 동그라미 크기
                 .background(Color.LightGray, shape = CircleShape) // 원형 배경
         ) {
@@ -528,7 +528,7 @@ fun RoomButtonSection(
                     RoomButton("교육실2", Modifier.weight(1f), onMoveToLocation)
                 }
                 RoomButton(
-                    "편집실 / 장비보관실 / 스튜디오 / 머들코지2",
+                    "편집실 / 장비보관실 / 스튜디오 / 머들코지",
                     modifier = Modifier.fillMaxWidth(),
                     onMoveToLocation = onMoveToLocation
                 )
@@ -571,12 +571,12 @@ fun RoomButton(label: String, modifier: Modifier = Modifier,onMoveToLocation: (S
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("${label}로 이동 하시겠습니까?") },
+            title = { Text("${label}로 이동 하시겠습니까?",fontSize = 26.sp,fontWeight = FontWeight.Bold) },
             text = { 
                 Column {
                     //Text("${label}으로 테미를 이동하시겠습니까?")
 //                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("이동버튼을 클릭하시면 원하시는 곳으로 이동합니다.", color = Color.Black)
+                    Text("이동버튼을 클릭하시면 원하시는 곳으로 이동합니다.", color = Color.Black,fontSize = 20.sp)
                 }
             },
             confirmButton = {
@@ -588,7 +588,7 @@ fun RoomButton(label: String, modifier: Modifier = Modifier,onMoveToLocation: (S
                         onClick = { showDialog = false },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
                     ) {
-                        Text("취소")
+                        Text("취소",fontSize = 24.sp)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -597,19 +597,17 @@ fun RoomButton(label: String, modifier: Modifier = Modifier,onMoveToLocation: (S
                             // TODO: 테미 이동 명령 실행
                             showDialog = false;
 
-                            val destination = if (label == "편집실 / 장비보관실 / 스튜디오 / 머들코지2") {
+                            val destination = if (label == "편집실 / 장비보관실 / 스튜디오 / 머들코지") {
                                 "편집실"
                             } else {
                                 label
                             }
                             onMoveToLocation(destination)
 
-
-
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
                     ) {
-                        Text("이동")
+                        Text("이동",fontSize = 24.sp,)
                     }
                 }
             }
@@ -719,7 +717,7 @@ fun STTDialog(
         IconButton(
             onClick = {
                 forceStopTTS()
-                viewModel.clearAIResponse() // ✅ aiResponse 초기화
+                viewModel.clearAll()     // <-- aiResponse + recognizedText 초기화
                 onDismiss()
             },
             modifier = Modifier
@@ -737,13 +735,22 @@ fun STTDialog(
         }
 
         Button(
-            onClick = onStartListening,
+            onClick = {
+                forceStopTTS()
+                viewModel.clearAll()      // 이전 텍스트 모두 초기화
+                onStartListening()        // 음성 인식 시작
+            },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 150.dp, start = 150.dp, end = 150.dp)
         ) {
-            Text("다시 말하기", color = Color.White, fontSize = 30.sp,modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+            Text(
+                "다시 말하기",
+                color = Color.White,
+                fontSize = 30.sp,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
         }
     }
 }
@@ -932,10 +939,15 @@ fun InfoDialog(onDismiss: () -> Unit, onMoveToLocation: (String) -> Unit) {
                                 }
 
                                 // 위치 버튼 1
-                                LocationMarker(x = 410.dp, y = 120.dp, label = "1", room = "스튜디오", onMoveToLocation)
-                                LocationMarker(x = 410.dp, y = 300.dp, label = "2", room = "편집실", onMoveToLocation)
-                                LocationMarker(x = 620.dp, y = 180.dp, label = "3", room = "편집실", onMoveToLocation)
-                                LocationMarker(x = 750.dp, y = 360.dp, label = "4", room = "편집실", onMoveToLocation)
+                                LocationMarker(x = 260.dp, y = 300.dp, label = "1", room = "창작실", onMoveToLocation)
+                                LocationMarker(x = 460.dp, y = 200.dp, label = "2", room = "회의실", onMoveToLocation)
+                                LocationMarker(x = 620.dp, y = 200.dp, label = "3", room = "교육실1", onMoveToLocation)
+                                LocationMarker(x = 720.dp, y = 370.dp, label = "4", room = "교육실2", onMoveToLocation)
+                                LocationMarker(x = 620.dp, y = 320.dp, label = "5", room = "콘텐츠공작소", onMoveToLocation)
+                                LocationMarker(x = 720.dp, y = 200.dp, label = "6", room = "입주실", onMoveToLocation)
+                                LocationMarker(x = 260.dp, y = 120.dp, label = "7", room = "편집실", onMoveToLocation)
+                                LocationMarker(x = 780.dp, y = 240.dp, label = "8", room = "정수기", onMoveToLocation)
+                                LocationMarker(x = 720.dp, y = 290.dp, label = "9", room = "사무실", onMoveToLocation)
 
                             }
                             2 -> {
@@ -994,9 +1006,9 @@ fun LocationMarker(
     Box(
         modifier = Modifier
             .offset(x = x, y = y)
-            .size(40.dp)
+            .size(55.dp)
             .clip(CircleShape)
-            .background(Color.Red.copy(alpha = 0.8f))
+            .background(Color.Red.copy(alpha = 0.7f))
             .clickable { showDialog = true },
         contentAlignment = Alignment.Center
     ) {
@@ -1011,21 +1023,21 @@ fun LocationMarker(
             title = {
                 Text(
                     "$room 로 이동하시겠습니까?",
-                    modifier = Modifier.width(600.dp) // ✅ 너비 설정
+                    modifier = Modifier.width(600.dp),fontSize = 26.sp,fontWeight = FontWeight.Bold
                 )
             },
-            text = { Text("이동버튼을 클릭하시면 원하시는 곳으로 이동합니다.") },
+            text = { Text("이동버튼을 클릭하시면 원하시는 곳으로 이동합니다.", color = Color.Black,fontSize = 20.sp) },
             confirmButton = {
                 Button(onClick = {
                     showDialog = false
                     onMoveToLocation(room)
                 }) {
-                    Text("이동")
+                    Text("이동",fontSize = 24.sp)
                 }
             },
             dismissButton = {
                 OutlinedButton(onClick = { showDialog = false }) {
-                    Text("취소")
+                    Text("취소",fontSize = 24.sp)
                 }
             }
         )
